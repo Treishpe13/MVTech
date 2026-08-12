@@ -43,7 +43,7 @@ code{background:#eef1f5;border-radius:5px;padding:1px 5px;font-size:11px}
 <body>
 <header>
   <span class="logo"><img alt="MVTech" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NCA5NC4xMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM4MDg3ODI7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojMDYzMDc0O30uY2xzLTN7ZmlsbDojZmY0NDM3O308L3N0eWxlPjwvZGVmcz48ZyBpZD0iRWxsaXBzZV8zX2NvcHkiPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTgwLjMxLDI1LjQ3TDUwLjE5LDguMDhjLS40LTMuNjktMy41My02LjU3LTcuMzMtNi41Ny00LjA3LDAtNy4zNywzLjMtNy4zNyw3LjM3czMuMyw3LjM3LDcuMzcsNy4zN2MuODMsMCwxLjYyLS4xNCwyLjM3LS40bDI2LjUsMTUuM3YyMi41Nmw5LjIxLTUuNTNWMjUuNDdoLS42NFoiLz48L2c+PGcgaWQ9IkVsbGlwc2VfM19jb3B5XzIiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzLjU2LDYxLjA2VjMwLjQ2bDE5LjU0LTExLjI4LTkuMzktNS4yMUw0LjM0LDI1LjE0aDBsLS4zMiwuMTksLjMyLC41NlY2MC42NmMtMywyLjE5LTMuOTIsNi4zNC0yLjAzLDkuNjMsMi4wNCwzLjUzLDYuNTQsNC43MywxMC4wNywyLjcsMy41My0yLjA0LDQuNzMtNi41NCwyLjctMTAuMDctLjQxLS43Mi0uOTQtMS4zNC0xLjUzLTEuODVaIi8+PC9nPjxnIGlkPSJFbGxpcHNlXzNfY29weV8zIj48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik03OS4yOSw2MS41MWMtMy41My0yLjA0LTguMDMtLjgzLTEwLjA3LDIuNy0uNDEsLjcyLS42OSwxLjQ4LS44NCwyLjI1bC0yNi41LDE1LjMtMTkuNTQtMTEuMjgsLjE4LDEwLjc0LDE5LjY4LDExLjM2LC4zMi0uNTYsMzAuMTItMTcuMzljMy40LDEuNSw3LjQ1LC4yMyw5LjM1LTMuMDYsMi4wNC0zLjUzLC44My04LjAzLTIuNy0xMC4wN1oiLz48L2c+PC9zdmc+"></span>
-  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.4</div></div>
+  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.5</div></div>
   <div id="status">pornire…</div>
 </header>
 <div id="err"></div>
@@ -10247,6 +10247,11 @@ try{
     if(window.opener){ try{ window.opener=null; }catch(e){} }
   }
 }catch(e){}
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const IS_STANDALONE = window.matchMedia("(display-mode: standalone)").matches ||
+  window.navigator.standalone === true;
+const USE_REDIRECT = IS_IOS || IS_STANDALONE;   // popup nu functioneaza in PWA instalat / iOS
 const SCOPES = ["Files.ReadWrite.All"];
 const GRAPH = "https://graph.microsoft.com/v1.0";
 let msalApp=null, account=null, snapshot=null, currentMachine=null;
@@ -10297,8 +10302,9 @@ async function token(){
   const req={scopes:SCOPES, account};
   try{ return (await msalApp.acquireTokenSilent(req)).accessToken; }
   catch(e){
+    if(USE_REDIRECT){ await msalApp.acquireTokenRedirect(req); throw e; }
     try{ const r=await msalApp.acquireTokenPopup(req); account=r.account; return r.accessToken; }
-    catch(e2){ await msalApp.acquireTokenRedirect(req); throw e2; } // iOS standalone: popup blocat
+    catch(e2){ await msalApp.acquireTokenRedirect(req); throw e2; }
   }
 }
 async function gfetch(url, opt={}){
@@ -10322,8 +10328,9 @@ async function init(){
   try{
     msalApp=new msal.PublicClientApplication({auth:{
       clientId:CFG.clientId, authority:"https://login.microsoftonline.com/"+CFG.tenantId,
-      redirectUri:location.origin+location.pathname},
-      cache:{cacheLocation:"localStorage"}});
+      redirectUri:location.origin+location.pathname,
+      navigateToLoginRequestUrl:false},
+      cache:{cacheLocation:"localStorage", storeAuthStateInCookie:IS_IOS}});
     await msalApp.initialize();
     const r=await msalApp.handleRedirectPromise().catch(e=>{showErr(e.message||e);return null;});
     if(r) account=r.account;
@@ -10336,6 +10343,11 @@ async function init(){
 }
 async function signIn(){
   if(!msalApp){ renderDiag(); return; }
+  if(USE_REDIRECT){
+    try{ await msalApp.loginRedirect({scopes:SCOPES}); }
+    catch(e){ showErr("Login: "+(e.message||e)); }
+    return;                       // revenim prin handleRedirectPromise
+  }
   try{
     const r=await msalApp.loginPopup({scopes:SCOPES});
     account=r.account;
