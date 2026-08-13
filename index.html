@@ -43,7 +43,7 @@ code{background:#eef1f5;border-radius:5px;padding:1px 5px;font-size:11px}
 <body>
 <header>
   <span class="logo"><img alt="MVTech" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NCA5NC4xMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM4MDg3ODI7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojMDYzMDc0O30uY2xzLTN7ZmlsbDojZmY0NDM3O308L3N0eWxlPjwvZGVmcz48ZyBpZD0iRWxsaXBzZV8zX2NvcHkiPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTgwLjMxLDI1LjQ3TDUwLjE5LDguMDhjLS40LTMuNjktMy41My02LjU3LTcuMzMtNi41Ny00LjA3LDAtNy4zNywzLjMtNy4zNyw3LjM3czMuMyw3LjM3LDcuMzcsNy4zN2MuODMsMCwxLjYyLS4xNCwyLjM3LS40bDI2LjUsMTUuM3YyMi41Nmw5LjIxLTUuNTNWMjUuNDdoLS42NFoiLz48L2c+PGcgaWQ9IkVsbGlwc2VfM19jb3B5XzIiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzLjU2LDYxLjA2VjMwLjQ2bDE5LjU0LTExLjI4LTkuMzktNS4yMUw0LjM0LDI1LjE0aDBsLS4zMiwuMTksLjMyLC41NlY2MC42NmMtMywyLjE5LTMuOTIsNi4zNC0yLjAzLDkuNjMsMi4wNCwzLjUzLDYuNTQsNC43MywxMC4wNywyLjcsMy41My0yLjA0LDQuNzMtNi41NCwyLjctMTAuMDctLjQxLS43Mi0uOTQtMS4zNC0xLjUzLTEuODVaIi8+PC9nPjxnIGlkPSJFbGxpcHNlXzNfY29weV8zIj48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik03OS4yOSw2MS41MWMtMy41My0yLjA0LTguMDMtLjgzLTEwLjA3LDIuNy0uNDEsLjcyLS42OSwxLjQ4LS44NCwyLjI1bC0yNi41LDE1LjMtMTkuNTQtMTEuMjgsLjE4LDEwLjc0LDE5LjY4LDExLjM2LC4zMi0uNTYsMzAuMTItMTcuMzljMy40LDEuNSw3LjQ1LC4yMyw5LjM1LTMuMDYsMi4wNC0zLjUzLC44My04LjAzLTIuNy0xMC4wN1oiLz48L2c+PC9zdmc+"></span>
-  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.11.1</div></div>
+  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.12.1</div></div>
   <div id="status">starting…</div>
 </header>
 <div id="err"></div>
@@ -10430,11 +10430,17 @@ async function refreshSnapshot(){
 }
 
 /* ---------- offline queue ---------- */
+function canViewAll(){
+  const engs=(snapshot&&snapshot.engineers)||[];
+  if(!engs.length) return true;               // registru gol = mod deschis
+  const me=myEngineer();
+  return !!(me.ok && me.row && me.row.va);
+}
 function myEngineer(){
   if(!snapshot || !snapshot.engineers || !snapshot.engineers.length) return {ok:true, name:null};
   const em=(account&&account.username||"").toLowerCase();
   const hit=snapshot.engineers.find(e=>e.e && e.e===em);
-  if(hit) return {ok:true, name:hit.n, role:hit.r};
+  if(hit) return {ok:true, name:hit.n, role:hit.r, row:hit};
   return {ok:false, name:null};
 }
 function queue(){ return JSON.parse(localStorage.getItem("mv_queue")||"[]"); }
@@ -10520,7 +10526,7 @@ function renderHome(){
         <div class="d">tap to collect the customer signature</div></div>`).join("")}
    </div>`:""}
    <div class="card"><h2>All machines</h2>
-     <button onclick="renderAll()" ${snapshot?"":"disabled"}>📋 Browse all machines</button></div>
+     <button onclick="renderAll()" ${snapshot&&canViewAll()?"":"disabled"}>📋 Browse all machines</button></div>
    <div class="card"><h2>Status</h2>
      <div class="kv">
       <div>Machines cached:</div><div>${snapshot? snapshot.machines.length : "—"}</div>
@@ -10578,6 +10584,7 @@ function submitSignature(u){
 }
 let allFilter="";
 function renderAll(){
+  if(!canViewAll()){toast("Browsing all machines is not enabled for your account");renderHome();return;}
   stopScan();
   const q=allFilter.trim().toLowerCase();
   let list=snapshot? snapshot.machines.slice() : [];
@@ -10679,7 +10686,7 @@ function renderService(){
    <div class="card"><h2>Service — ${m.t} ${m.sn}</h2>
     <label>Service type</label>
     <select id="sv_type"><option>PM</option><option>Repair</option><option>Installation</option><option>Inspection</option></select>
-    <label>Problem / symptom</label><textarea id="sv_prob" rows="3" placeholder="mesaj de error, comportament…"></textarea>
+    <label>Problem / symptom</label><textarea id="sv_prob" rows="3" placeholder="error message, machine behaviour…"></textarea>
     <label>Work performed / solution</label><textarea id="sv_work" rows="3" placeholder="cleaned, greased, replaced…"></textarea>
     <label>Comments</label><textarea id="sv_com" rows="2"></textarea>
     <label>Engineer</label><input id="sv_eng" value="${myEngineer().name || (account? (account.name||account.username.split("@")[0]):"")}">
