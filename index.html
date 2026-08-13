@@ -43,7 +43,7 @@ code{background:#eef1f5;border-radius:5px;padding:1px 5px;font-size:11px}
 <body>
 <header>
   <span class="logo"><img alt="MVTech" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NCA5NC4xMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM4MDg3ODI7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojMDYzMDc0O30uY2xzLTN7ZmlsbDojZmY0NDM3O308L3N0eWxlPjwvZGVmcz48ZyBpZD0iRWxsaXBzZV8zX2NvcHkiPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTgwLjMxLDI1LjQ3TDUwLjE5LDguMDhjLS40LTMuNjktMy41My02LjU3LTcuMzMtNi41Ny00LjA3LDAtNy4zNywzLjMtNy4zNyw3LjM3czMuMyw3LjM3LDcuMzcsNy4zN2MuODMsMCwxLjYyLS4xNCwyLjM3LS40bDI2LjUsMTUuM3YyMi41Nmw5LjIxLTUuNTNWMjUuNDdoLS42NFoiLz48L2c+PGcgaWQ9IkVsbGlwc2VfM19jb3B5XzIiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzLjU2LDYxLjA2VjMwLjQ2bDE5LjU0LTExLjI4LTkuMzktNS4yMUw0LjM0LDI1LjE0aDBsLS4zMiwuMTksLjMyLC41NlY2MC42NmMtMywyLjE5LTMuOTIsNi4zNC0yLjAzLDkuNjMsMi4wNCwzLjUzLDYuNTQsNC43MywxMC4wNywyLjcsMy41My0yLjA0LDQuNzMtNi41NCwyLjctMTAuMDctLjQxLS43Mi0uOTQtMS4zNC0xLjUzLTEuODVaIi8+PC9nPjxnIGlkPSJFbGxpcHNlXzNfY29weV8zIj48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik03OS4yOSw2MS41MWMtMy41My0yLjA0LTguMDMtLjgzLTEwLjA3LDIuNy0uNDEsLjcyLS42OSwxLjQ4LS44NCwyLjI1bC0yNi41LDE1LjMtMTkuNTQtMTEuMjgsLjE4LDEwLjc0LDE5LjY4LDExLjM2LC4zMi0uNTYsMzAuMTItMTcuMzljMy40LDEuNSw3LjQ1LC4yMyw5LjM1LTMuMDYsMi4wNC0zLjUzLC44My04LjAzLTIuNy0xMC4wN1oiLz48L2c+PC9zdmc+"></span>
-  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.10.1</div></div>
+  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.11.1</div></div>
   <div id="status">starting…</div>
 </header>
 <div id="err"></div>
@@ -10401,6 +10401,21 @@ async function signIn(){
 }
 
 /* ---------- snapshot ---------- */
+async function signOut(){
+  try{
+    const acc = msalApp.getActiveAccount() || (msalApp.getAllAccounts()[0]||null);
+    account=null;
+    if(USE_REDIRECT){
+      await msalApp.logoutRedirect({account:acc,
+        postLogoutRedirectUri: location.origin+location.pathname});
+      return;
+    }
+    try{ await msalApp.logoutPopup({account:acc}); }
+    catch(e){ await msalApp.logoutRedirect({account:acc,
+        postLogoutRedirectUri: location.origin+location.pathname}); return; }
+  }catch(e){ console.warn("signOut", e); }
+  renderHome();
+}
 async function refreshSnapshot(){
   if(!navigator.onLine||!account) return;
   try{
@@ -10512,6 +10527,7 @@ function renderHome(){
       <div>Snapshot:</div><div>${snapshot? snapshot.generated.replace("T"," ").slice(0,16):"—"}</div>
       <div>Offline queue:</div><div>${queue().length} report(s)</div></div>
      <button onclick="refreshSnapshot()">Refresh data</button>
+    ${account?`<button onclick="signOut()">⎋ Sign out</button>`:""}
      <button onclick="renderDiag()">Diagnostics</button></div>`;
 }
 function searchList(){
