@@ -43,7 +43,7 @@ code{background:#eef1f5;border-radius:5px;padding:1px 5px;font-size:11px}
 <body>
 <header>
   <span class="logo"><img alt="MVTech" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NCA5NC4xMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM4MDg3ODI7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojMDYzMDc0O30uY2xzLTN7ZmlsbDojZmY0NDM3O308L3N0eWxlPjwvZGVmcz48ZyBpZD0iRWxsaXBzZV8zX2NvcHkiPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTgwLjMxLDI1LjQ3TDUwLjE5LDguMDhjLS40LTMuNjktMy41My02LjU3LTcuMzMtNi41Ny00LjA3LDAtNy4zNywzLjMtNy4zNyw3LjM3czMuMyw3LjM3LDcuMzcsNy4zN2MuODMsMCwxLjYyLS4xNCwyLjM3LS40bDI2LjUsMTUuM3YyMi41Nmw5LjIxLTUuNTNWMjUuNDdoLS42NFoiLz48L2c+PGcgaWQ9IkVsbGlwc2VfM19jb3B5XzIiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzLjU2LDYxLjA2VjMwLjQ2bDE5LjU0LTExLjI4LTkuMzktNS4yMUw0LjM0LDI1LjE0aDBsLS4zMiwuMTksLjMyLC41NlY2MC42NmMtMywyLjE5LTMuOTIsNi4zNC0yLjAzLDkuNjMsMi4wNCwzLjUzLDYuNTQsNC43MywxMC4wNywyLjcsMy41My0yLjA0LDQuNzMtNi41NCwyLjctMTAuMDctLjQxLS43Mi0uOTQtMS4zNC0xLjUzLTEuODVaIi8+PC9nPjxnIGlkPSJFbGxpcHNlXzNfY29weV8zIj48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik03OS4yOSw2MS41MWMtMy41My0yLjA0LTguMDMtLjgzLTEwLjA3LDIuNy0uNDEsLjcyLS42OSwxLjQ4LS44NCwyLjI1bC0yNi41LDE1LjMtMTkuNTQtMTEuMjgsLjE4LDEwLjc0LDE5LjY4LDExLjM2LC4zMi0uNTYsMzAuMTItMTcuMzljMy40LDEuNSw3LjQ1LC4yMyw5LjM1LTMuMDYsMi4wNC0zLjUzLC44My04LjAzLTIuNy0xMC4wN1oiLz48L2c+PC9zdmc+"></span>
-  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.9.1.1</div></div>
+  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.10.1</div></div>
   <div id="status">starting…</div>
 </header>
 <div id="err"></div>
@@ -10528,15 +10528,21 @@ function renderSign(u){
   const pd=(snapshot.pending||[]).find(x=>x.u===u);
   if(!pd){renderHome();return;}
   sigDirty=false;
+  const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br>");
   $("#app").innerHTML=`
-   <div class="card"><h2>Customer signature</h2>
+   <div class="card"><h2>Service report — ${esc(pd.ty)||"Service"}</h2>
     <div class="kv">
-      <div>Type:</div><div>${pd.ty||"Service"}</div>
-      <div>Machine:</div><div>${pd.sn}</div>
-      <div>Customer:</div><div>${pd.cu||"—"}</div>
-      <div>Date:</div><div>${pd.d||"—"}</div>
-      <div>Summary:</div><div>${pd.s||"—"}</div></div>
-    <label>Customer signature</label>
+      <div>Machine:</div><div>${esc(pd.mt)||"—"}</div>
+      <div>Serial:</div><div>${esc(pd.sn)}</div>
+      <div>Customer:</div><div>${esc(pd.cu)||"—"}</div>
+      <div>Date:</div><div>${esc(pd.d)||"—"}</div>
+      <div>Engineer:</div><div>${esc(pd.by)||"—"}</div></div>
+   </div>
+   <div class="card"><h2>Problem / symptom</h2><div style="font-size:13px">${esc(pd.pb)||"—"}</div></div>
+   <div class="card"><h2>Work performed / solution</h2><div style="font-size:13px">${esc(pd.wk)||"—"}</div></div>
+   ${pd.co?`<div class="card"><h2>Comments</h2><div style="font-size:13px">${esc(pd.co)}</div></div>`:""}
+   <div class="card"><h2>Customer signature</h2>
+    <p class="hint">By signing, the customer confirms the work described above.</p>
     <canvas class="sig" id="sig"></canvas>
     <button onclick="clearSig()">Clear signature</button>
     <button class="primary" onclick='submitSignature(${JSON.stringify(u)})'>✔ Send signature</button>
