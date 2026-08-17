@@ -43,7 +43,7 @@ code{background:#eef1f5;border-radius:5px;padding:1px 5px;font-size:11px}
 <body>
 <header>
   <span class="logo"><img alt="MVTech" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NCA5NC4xMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM4MDg3ODI7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojMDYzMDc0O30uY2xzLTN7ZmlsbDojZmY0NDM3O308L3N0eWxlPjwvZGVmcz48ZyBpZD0iRWxsaXBzZV8zX2NvcHkiPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTgwLjMxLDI1LjQ3TDUwLjE5LDguMDhjLS40LTMuNjktMy41My02LjU3LTcuMzMtNi41Ny00LjA3LDAtNy4zNywzLjMtNy4zNyw3LjM3czMuMyw3LjM3LDcuMzcsNy4zN2MuODMsMCwxLjYyLS4xNCwyLjM3LS40bDI2LjUsMTUuM3YyMi41Nmw5LjIxLTUuNTNWMjUuNDdoLS42NFoiLz48L2c+PGcgaWQ9IkVsbGlwc2VfM19jb3B5XzIiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzLjU2LDYxLjA2VjMwLjQ2bDE5LjU0LTExLjI4LTkuMzktNS4yMUw0LjM0LDI1LjE0aDBsLS4zMiwuMTksLjMyLC41NlY2MC42NmMtMywyLjE5LTMuOTIsNi4zNC0yLjAzLDkuNjMsMi4wNCwzLjUzLDYuNTQsNC43MywxMC4wNywyLjcsMy41My0yLjA0LDQuNzMtNi41NCwyLjctMTAuMDctLjQxLS43Mi0uOTQtMS4zNC0xLjUzLTEuODVaIi8+PC9nPjxnIGlkPSJFbGxpcHNlXzNfY29weV8zIj48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik03OS4yOSw2MS41MWMtMy41My0yLjA0LTguMDMtLjgzLTEwLjA3LDIuNy0uNDEsLjcyLS42OSwxLjQ4LS44NCwyLjI1bC0yNi41LDE1LjMtMTkuNTQtMTEuMjgsLjE4LDEwLjc0LDE5LjY4LDExLjM2LC4zMi0uNTYsMzAuMTItMTcuMzljMy40LDEuNSw3LjQ1LC4yMyw5LjM1LTMuMDYsMi4wNC0zLjUzLC44My04LjAzLTIuNy0xMC4wN1oiLz48L2c+PC9zdmc+"></span>
-  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.16</div></div>
+  <div><h1><b>MV</b>Tech Service</h1><div class="sub">v0.17</div></div>
   <div id="status">starting…</div>
 </header>
 <div id="err"></div>
@@ -10370,7 +10370,7 @@ async function init(){
     if(!account){const accs=msalApp.getAllAccounts(); if(accs.length) account=accs[0];}
   }catch(e){ showErr("MSAL init: "+(e.message||e)); setStatus("error"); return; }
   renderHome();
-  if(account){ setStatus(account.username.split("@")[0]); refreshSnapshot(); flushQueue(); }
+  if(account){ setStatus(displayName()); refreshSnapshot(); flushQueue(); }
   else setStatus("not signed in");
   window.addEventListener("online",()=>{flushQueue();refreshSnapshot();});
 }
@@ -10396,7 +10396,7 @@ async function signIn(){
       return;
     }
   }
-  setStatus(account.username.split("@")[0]);
+  setStatus(displayName());
   await refreshSnapshot(); renderHome();
 }
 
@@ -10424,7 +10424,7 @@ async function refreshSnapshot(){
     if(r.status===404){toast("Snapshot missing - it publishes automatically while the desktop app runs");return;}
     snapshot=await r.json();
     localStorage.setItem("mv_snapshot", JSON.stringify(snapshot));
-    setStatus(account.username.split("@")[0]+" · "+snapshot.machines.length+" machines");
+    setStatus(displayName()+" · "+snapshot.machines.length+" machines");
     renderHome();
   }catch(e){ showErr("Snapshot: "+(e.message||e)); }
 }
@@ -10442,6 +10442,42 @@ function myEngineer(){
   const hit=snapshot.engineers.find(e=>e.e && e.e===em);
   if(hit) return {ok:true, name:hit.n, role:hit.r, row:hit};
   return {ok:false, name:null};
+}
+function displayName(){
+  /* numele inginerului din registru; fallback: numele din contul M365;
+     abia la urma prefixul de email */
+  const me=myEngineer();
+  if(me.name) return me.name;
+  if(account && account.name) return account.name;
+  return account ? account.username.split("@")[0] : "";
+}
+function parseWT(s){
+  s=(s||"").trim();
+  if(!s) return [0,0];
+  let m=s.match(/^(\d{1,3})\s*:\s*(\d{1,2})$/);
+  if(m) return [parseInt(m[1],10), parseInt(m[2],10)];
+  const h=s.match(/(\d+)\s*h/i), mn=s.match(/(\d+)\s*m/i);
+  if(h||mn) return [h?parseInt(h[1],10):0, mn?parseInt(mn[1],10):0];
+  if(/^\d+$/.test(s)) return [0, parseInt(s,10)];
+  return [0,0];
+}
+function fmtWT(h,m){
+  h=parseInt(h,10)||0; m=parseInt(m,10)||0;
+  if(h&&m) return h+"h "+m+" min";
+  if(h) return h+"h";
+  if(m) return m+" min";
+  return "";
+}
+function wtInputs(prefix,val){
+  const [h,m]=parseWT(val);
+  return `<div style="display:flex;gap:8px;align-items:center">
+    <input id="${prefix}_h" type="number" inputmode="numeric" min="0" max="999" value="${h||""}" placeholder="0" style="width:90px;box-sizing:border-box"> <span>h</span>
+    <input id="${prefix}_m" type="number" inputmode="numeric" min="0" max="59" value="${m||""}" placeholder="0" style="width:90px;box-sizing:border-box"> <span>min</span>
+  </div>`;
+}
+function wtValue(prefix){
+  return fmtWT($("#"+prefix+"_h")&&$("#"+prefix+"_h").value,
+               $("#"+prefix+"_m")&&$("#"+prefix+"_m").value);
 }
 function queue(){ return JSON.parse(localStorage.getItem("mv_queue")||"[]"); }
 function setQueue(q){ localStorage.setItem("mv_queue", JSON.stringify(q)); }
@@ -10564,7 +10600,7 @@ function renderSign(u){
    <div class="card"><h2>Problem / symptom</h2><textarea id="sg_prob" rows="2">${esc0(pd.pb)}</textarea></div>
    <div class="card"><h2>Error message</h2><textarea id="sg_err" rows="2">${esc0(pd.em)}</textarea></div>
    <div class="card"><h2>Work performed / solution</h2><textarea id="sg_work" rows="3">${esc0(pd.wk)}</textarea></div>
-   <div class="card"><h2>Time worked (h:min)</h2><input id="sg_time" value="${esc0(pd.wt)}" style="width:100%;box-sizing:border-box"></div>
+   <div class="card"><h2>Time worked</h2>${wtInputs("sg_time", pd.wt)}</div>
    <div class="card"><h2>Report and findings</h2><textarea id="sg_com" rows="2">${esc0(pd.co)}</textarea></div>
    <div class="card"><h2>Customer signature</h2>
     <p class="hint">By signing, the customer confirms the work described above.</p>
@@ -10582,7 +10618,7 @@ function submitSignature(u){
              problem:($("#sg_prob")&&$("#sg_prob").value||"").trim(),
              error_msg:($("#sg_err")&&$("#sg_err").value||"").trim(),
              work:($("#sg_work")&&$("#sg_work").value||"").trim(),
-             work_time:($("#sg_time")&&$("#sg_time").value||"").trim(),
+             work_time:wtValue("sg_time"),
              comment:($("#sg_com")&&$("#sg_com").value||"").trim(),
              date:new Date().toISOString().slice(0,10)};
   // scoate elementul din lista locala pana vine snapshotul proaspat
@@ -10701,8 +10737,8 @@ function renderService(){
     <label>Problem / symptom</label><textarea id="sv_prob" rows="3" placeholder="what the customer reported…"></textarea>
     <label>Error message</label><textarea id="sv_err" rows="2" placeholder="exact error text / code…"></textarea>
     <label>Work performed / solution</label><textarea id="sv_work" rows="3" placeholder="cleaned, greased, replaced…"></textarea>
-    <label>Time worked (h:min)</label>
-    <input id="sv_time" placeholder="e.g. 2:30" style="width:100%;box-sizing:border-box">
+    <label>Time worked</label>
+    ${wtInputs("sv_time","")}
     <label>Report and findings</label><textarea id="sv_com" rows="2"></textarea>
     <label>Engineer</label><input id="sv_eng" value="${myEngineer().name || (account? (account.name||account.username.split("@")[0]):"")}">
     <label>Photos (max 6)</label>
@@ -10758,7 +10794,7 @@ function submitService(draft){
     serial:m.sn, customer:m.cu, qr:m.qr,
     service_type:types.join(", "),
     error_msg:($("#sv_err")&&$("#sv_err").value||"").trim(),
-    work_time:($("#sv_time")&&$("#sv_time").value||"").trim(),
+    work_time:wtValue("sv_time"),
     problem:$("#sv_prob").value.trim(),
     work: work,
     comment:$("#sv_com").value.trim(),
